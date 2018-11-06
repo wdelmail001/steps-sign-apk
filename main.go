@@ -373,7 +373,7 @@ func main() {
 		}
 	} else {
 		log.Infof("Download keystore")
-		keystorePath = path.Join(tmpDir, "keystore.jks")
+		keystorePath = path.Join(tmpDir, "keystores.zip")
 		if err := download(configs.KeystoreURL, keystorePath); err != nil {
 			failf("Failed to download keystore, error: %s", err)
 		}
@@ -424,7 +424,8 @@ func main() {
 	if chosenKeystorePath == "" {
 		failf("Cannot find unzipped keystores", nil)
 	}
-	ks, err := keystore.NewHelper(chosenKeystorePath, chosenPassword, chosenAlias)
+	fmt.Print(chosenKeystorePath + chosenAlias)
+	keystore, err := keystore.NewHelper(chosenKeystorePath, chosenPassword, chosenAlias)
 	if err != nil {
 		failf("Failed to create keystore helper, error: %s", err)
 	}
@@ -492,13 +493,13 @@ func main() {
 		// sign apk
 		unalignedAPKPth := filepath.Join(tmpDir, "unaligned.apk")
 		log.Infof("Sign APK")
-		if err := ks.SignAPK(unsignedAPKPth, unalignedAPKPth, configs.PrivateKeyPassword); err != nil {
+		if err := keystore.SignAPK(unsignedAPKPth, unalignedAPKPth, configs.PrivateKeyPassword); err != nil {
 			failf("Failed to sign APK, error: %s", err)
 		}
 		fmt.Println()
 
 		log.Infof("Verify APK")
-		if err := ks.VerifyAPK(unalignedAPKPth); err != nil {
+		if err := keystore.VerifyAPK(unalignedAPKPth); err != nil {
 			failf("Failed to verify APK, error: %s", err)
 		}
 		fmt.Println()
