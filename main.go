@@ -413,7 +413,7 @@ func main() {
 			}
 
 			for _, line := range lines {
-				if strings.ToLower(line[0]) == configs.Brand {
+				if strings.ToLower(line[0]) == strings.ToLower(configs.Brand) {
 					chosenPassword = line[1]
 					chosenAlias = line[2]
 				}
@@ -425,7 +425,7 @@ func main() {
 	if chosenKeystorePath == "" {
 		failf("Cannot find unzipped keystores", nil)
 	}
-	log.Printf(chosenKeystorePath + " " + chosenAlias)
+	log.Printf(chosenKeystorePath + " " + chosenPassword)
 	keystore, err := keystore.NewHelper(chosenKeystorePath, chosenPassword, chosenAlias)
 	if err != nil {
 		failf("Failed to create keystore helper, error: %s", err)
