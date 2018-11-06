@@ -413,7 +413,7 @@ func main() {
 			}
 
 			for _, line := range lines {
-				if line[0] == configs.Brand {
+				if strings.ToLower(line[0]) == configs.Brand {
 					chosenPassword = line[1]
 					chosenAlias = line[2]
 				}
