@@ -58,6 +58,7 @@ func (configs ConfigsModel) print() {
 	fmt.Println()
 	log.Infof("Configs:")
 	log.Printf(" - ApkPath: %s", configs.ApkPath)
+	log.Printf(" - Brand: %s", secureInput(configs.Brand))
 	log.Printf(" - KeystoreURL: %s", secureInput(configs.KeystoreURL))
 	log.Printf(" - KeystorePassword: %s", secureInput(configs.KeystorePassword))
 	log.Printf(" - KeystoreAlias: %s", configs.KeystoreAlias)
