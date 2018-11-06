@@ -424,7 +424,7 @@ func main() {
 	if chosenKeystorePath == "" {
 		failf("Cannot find unzipped keystores", nil)
 	}
-	fmt.Print(chosenKeystorePath + chosenAlias)
+	log.Printf(chosenKeystorePath + " " + chosenAlias)
 	keystore, err := keystore.NewHelper(chosenKeystorePath, chosenPassword, chosenAlias)
 	if err != nil {
 		failf("Failed to create keystore helper, error: %s", err)
