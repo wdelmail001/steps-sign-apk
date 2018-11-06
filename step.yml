@@ -1,6 +1,6 @@
 title: "Sign APK"
 summary: Sign APK
-description: 
+description: |-
   With this step, you can digitally sign your app's APK file in your workflow. 
   All you have to do is upload your keystore file in the Code signing tab of the Workflow Editor.
 website: https://github.com/bitrise-steplib/steps-sign-apk
@@ -44,14 +44,12 @@ inputs:
         - `/path/to/my/app.apk`
         - `/path/to/my/app1.apk|/path/to/my/app2.apk|/path/to/my/app3.apk`
       is_required: true
-- brand: "$ANDROID_BRAND"
+  - brand: "$ANDROID_BRAND"
     opts:
       title: "Android Brand"
       summary: ""
       description: "Will be used to determine which keystore is to be used"
-
       is_required: true
-
   - keystore_url: $BITRISEIO_BRAND_KEYSTORES_URL
     opts:
       title: "Keystore url"
