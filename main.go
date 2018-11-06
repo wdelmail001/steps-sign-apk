@@ -394,31 +394,31 @@ func main() {
 	chosenPassword := ""
 	chosenAlias := ""
 	for _, f := range files {
-		switch {
-		case strings.Contains(strings.ToLower(f.Name()), configs.Brand):
+		log.Printf(strings.ToLower(f.Name()) + " " + configs.Brand)
+		if strings.Contains(strings.ToLower(f.Name()), configs.Brand) {
+			log.Printf("keystore file")
 			chosenKeystorePath = "keystores/" + f.Name()
-		case strings.ToLower(f.Name()) == "passwords.txt":
-			{
-
-				passwordsFile, err := os.Open("keystores/" + f.Name())
-				if err != nil {
-					failf("Cannot open passwords", err)
-				}
-				// Read File into a Variable
-				lines, err := csv.NewReader(passwordsFile).ReadAll()
-				if err != nil {
-					failf("Cannot read passwords", err)
-				}
-
-				for _, line := range lines {
-					if line[0] == configs.Brand {
-						chosenPassword = line[1]
-						chosenAlias = line[2]
-					}
-				}
+		}
+		if strings.ToLower(f.Name()) == "passwords.txt" {
+			log.Printf("password file")
+			passwordsFile, err := os.Open("keystores/" + f.Name())
+			if err != nil {
+				failf("Cannot open passwords", err)
+			}
+			// Read File into a Variable
+			lines, err := csv.NewReader(passwordsFile).ReadAll()
+			if err != nil {
+				failf("Cannot read passwords", err)
 			}
 
+			for _, line := range lines {
+				if line[0] == configs.Brand {
+					chosenPassword = line[1]
+					chosenAlias = line[2]
+				}
+			}
 		}
+
 	}
 
 	if chosenKeystorePath == "" {
