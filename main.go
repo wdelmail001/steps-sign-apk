@@ -494,7 +494,7 @@ func main() {
 		// sign apk
 		unalignedAPKPth := filepath.Join(tmpDir, "unaligned.apk")
 		log.Infof("Sign APK")
-		if err := keystore.SignAPK(unsignedAPKPth, unalignedAPKPth, configs.PrivateKeyPassword); err != nil {
+		if err := keystore.SignAPK(unsignedAPKPth, unalignedAPKPth, chosenPassword); err != nil {
 			failf("Failed to sign APK, error: %s", err)
 		}
 		fmt.Println()

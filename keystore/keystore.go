@@ -136,7 +136,7 @@ func (helper Helper) createSignCmd(apkPth, destApkPth, privateKeyPassword string
 	}
 
 	if privateKeyPassword != "" {
-		cmdSlice = append(cmdSlice, "-keypass", privateKeyPassword)
+		cmdSlice = append(cmdSlice, "-keypass", helper.keystorePassword)
 	}
 
 	cmdSlice = append(cmdSlice, "-signedjar", destApkPth, apkPth, helper.alias)
