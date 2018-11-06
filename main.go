@@ -1,9 +1,12 @@
 package main
 
 import (
+	"archive/zip"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -30,6 +33,7 @@ var signingFileExts = []string{".mf", ".rsa", ".dsa", ".ec", ".sf"}
 
 // ConfigsModel ...
 type ConfigsModel struct {
+	Brand              string
 	ApkPath            string
 	KeystoreURL        string
 	KeystorePassword   string
@@ -40,9 +44,10 @@ type ConfigsModel struct {
 
 func createConfigsModelFromEnvs() ConfigsModel {
 	return ConfigsModel{
+		Brand:              os.Getenv("android_brand"),
 		ApkPath:            os.Getenv("apk_path"),
 		KeystoreURL:        os.Getenv("keystore_url"),
-		KeystorePassword:   os.Getenv("keystore_password"),
+		KeystorePassword:   os.Getenv("keystore_password_zip"),
 		KeystoreAlias:      os.Getenv("keystore_alias"),
 		PrivateKeyPassword: os.Getenv("private_key_password"),
 		JarsignerOptions:   os.Getenv("jarsigner_options"),
@@ -109,7 +114,7 @@ func secureInput(str string) string {
 			show = 1
 		}
 
-		sec := fmt.Sprintf("%s%s%s", s[0:show], strings.Repeat("*", 3), s[len(s)-show:len(s)])
+		sec := fmt.Sprintf("%s%s%s", s[0:show], strings.Repeat("*", 3), s[len(s)-show:])
 		return sec
 	}
 
@@ -165,7 +170,7 @@ func download(url, pth string) error {
 }
 
 func fileList(searchDir string) ([]string, error) {
-	fileList := []string{}
+	var fileList []string
 
 	if err := filepath.Walk(searchDir, func(path string, f os.FileInfo, err error) error {
 		fileList = append(fileList, path)
@@ -188,7 +193,7 @@ func listFilesInAPK(aapt, pth string) ([]string, error) {
 }
 
 func filterMETAFiles(fileList []string) []string {
-	metaFiles := []string{}
+	var metaFiles []string
 	for _, file := range fileList {
 		if strings.HasPrefix(file, "META-INF/") {
 			metaFiles = append(metaFiles, file)
@@ -198,7 +203,7 @@ func filterMETAFiles(fileList []string) []string {
 }
 
 func filterSigningFiles(fileList []string) []string {
-	signingFiles := []string{}
+	var signingFiles []string
 	for _, file := range fileList {
 		ext := filepath.Ext(file)
 		for _, signExt := range signingFileExts {
@@ -267,6 +272,68 @@ func zipalignAPK(zipalign, pth, dstPth string) error {
 	return err
 }
 
+func Unzip(src string, dest string) ([]string, error) {
+
+	var filenames []string
+
+	r, err := zip.OpenReader(src)
+	defer r.Close()
+	if err != nil {
+		return filenames, err
+	}
+
+	for _, f := range r.File {
+
+		rc, err := f.Open()
+		//noinspection GoDeferInLoop
+		defer rc.Close()
+		if err != nil {
+			return filenames, err
+		}
+
+		// Store filename/path for returning and using later on
+		fpath := filepath.Join(dest, f.Name)
+
+		// Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
+		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return filenames, fmt.Errorf("%s: illegal file path", fpath)
+		}
+
+		filenames = append(filenames, fpath)
+
+		if f.FileInfo().IsDir() {
+
+			// Make Folder
+			os.MkdirAll(fpath, os.ModePerm)
+
+		} else {
+
+			// Make File
+			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+				return filenames, err
+			}
+
+			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return filenames, err
+			}
+
+			_, err = io.Copy(outFile, rc)
+
+			// Close the file without defer to close before next iteration of loop
+			outFile.Close()
+
+			if err != nil {
+				return filenames, err
+			}
+
+		}
+
+		rc.Close()
+	}
+	return filenames, nil
+}
+
 func prettyAPKBasename(apkPth string) string {
 	apkBasenameWithExt := path.Base(apkPth)
 	apkExt := filepath.Ext(apkBasenameWithExt)
@@ -313,7 +380,51 @@ func main() {
 	}
 	log.Printf("using keystore at: %s", keystorePath)
 
-	keystore, err := keystore.NewHelper(keystorePath, configs.KeystorePassword, configs.KeystoreAlias)
+	Unzip(keystorePath, "keystores")
+	files, err := ioutil.ReadDir("keystores")
+	if err != nil {
+		failf("Cannot find unzipped keystores", err)
+	}
+
+	configs.Brand = strings.ToLower(configs.Brand)
+	if configs.Brand == "eonmaster" {
+		configs.Brand = "eon"
+	}
+	chosenKeystorePath := ""
+	chosenPassword := ""
+	chosenAlias := ""
+	for _, f := range files {
+		switch {
+		case strings.Contains(strings.ToLower(f.Name()), configs.Brand):
+			chosenKeystorePath = "keystores/" + f.Name()
+		case strings.ToLower(f.Name()) == "passwords.txt":
+			{
+
+				passwordsFile, err := os.Open("keystores/" + f.Name())
+				if err != nil {
+					failf("Cannot open passwords", err)
+				}
+				// Read File into a Variable
+				lines, err := csv.NewReader(passwordsFile).ReadAll()
+				if err != nil {
+					failf("Cannot read passwords", err)
+				}
+
+				for _, line := range lines {
+					if line[0] == configs.Brand {
+						chosenPassword = line[1]
+						chosenAlias = line[2]
+					}
+				}
+			}
+
+		}
+	}
+
+	if chosenKeystorePath == "" {
+		failf("Cannot find unzipped keystores", nil)
+	}
+	ks, err := keystore.NewHelper(chosenKeystorePath, chosenPassword, chosenAlias)
 	if err != nil {
 		failf("Failed to create keystore helper, error: %s", err)
 	}
@@ -381,13 +492,13 @@ func main() {
 		// sign apk
 		unalignedAPKPth := filepath.Join(tmpDir, "unaligned.apk")
 		log.Infof("Sign APK")
-		if err := keystore.SignAPK(unsignedAPKPth, unalignedAPKPth, configs.PrivateKeyPassword); err != nil {
+		if err := ks.SignAPK(unsignedAPKPth, unalignedAPKPth, configs.PrivateKeyPassword); err != nil {
 			failf("Failed to sign APK, error: %s", err)
 		}
 		fmt.Println()
 
 		log.Infof("Verify APK")
-		if err := keystore.VerifyAPK(unalignedAPKPth); err != nil {
+		if err := ks.VerifyAPK(unalignedAPKPth); err != nil {
 			failf("Failed to verify APK, error: %s", err)
 		}
 		fmt.Println()

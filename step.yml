@@ -44,7 +44,15 @@ inputs:
         - `/path/to/my/app.apk`
         - `/path/to/my/app1.apk|/path/to/my/app2.apk|/path/to/my/app3.apk`
       is_required: true
-  - keystore_url: $BITRISEIO_ANDROID_KEYSTORE_URL
+- brand: "$ANDROID_BRAND"
+    opts:
+      title: "Android Brand"
+      summary: ""
+      description: "Will be used to determine which keystore is to be used"
+
+      is_required: true
+
+  - keystore_url: $BITRISEIO_BRAND_KEYSTORES_URL
     opts:
       title: "Keystore url"
       summary: ""
@@ -53,7 +61,7 @@ inputs:
         For local keystores provide file path url. (ex: file://PATH/TO/keystore.jks).
       is_required: true
       is_sensitive: true
-  - keystore_password: $BITRISEIO_ANDROID_KEYSTORE_PASSWORD
+  - keystore_password_zip: $BITRISEIO_ANDROID_KEYSTORE_PASSWORD
     opts:
       title: "Keystore password"
       summary: ""

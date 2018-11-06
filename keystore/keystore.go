@@ -234,14 +234,14 @@ func findSignatureAlgorithm(keystoreData string) (string, error) {
 }
 
 func secureSignCmd(cmdSlice []string) []string {
-	securedCmdSlice := []string{}
+	var securedCmdSlice []string
 	secureNextParam := false
 	for _, param := range cmdSlice {
 		if secureNextParam {
 			param = "***"
 		}
 
-		secureNextParam = (param == "-storepass" || param == "-keypass")
+		secureNextParam = param == "-storepass" || param == "-keypass"
 		securedCmdSlice = append(securedCmdSlice, param)
 	}
 	return securedCmdSlice
